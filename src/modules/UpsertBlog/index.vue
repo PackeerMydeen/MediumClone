@@ -21,31 +21,32 @@
         v-model="title"
         autofocus="true"
       />
-      <div @mouseup="highlight">
-        <editor-content :editor="editor" class="Input Input--content" />
-      </div>
-      <Tooltip :show="isShowToolTip" :tooltipPosition="tooltipPosition">
-        <span @click="getOffset">Highlight</span>
-      </Tooltip>
+      <medium-editor
+        :text="content"
+        custom-tag="h2"
+        :content="content"
+        :options="options"
+        v-on:edit="applyTextEdit"
+      />
     </div>
   </div>
 </template>
 
 <script>
-import { Editor, EditorContent } from "tiptap";
-import { CodeBlock, Heading, Code, Bold, Blockquote } from "tiptap-extensions";
+import editor from "vue2-medium-editor";
 
 import { mapState } from "vuex";
 import Button from "../../components/Button";
 import User from "../../components/User";
 import Tooltip from "../../components/Tooltip";
+
 export default {
   name: "UpsertBlog",
   components: {
     User,
-    EditorContent,
     Button,
-    Tooltip
+    Tooltip,
+    "medium-editor": editor
   },
   computed: {
     ...mapState({ posts: "posts" }),
@@ -53,8 +54,8 @@ export default {
       if (
         this.title &&
         this.title.length > 2 &&
-        this.html !== null &&
-        this.html.length > 10
+        this.content !== null &&
+        this.content.length > 10
       ) {
         return false;
       }
@@ -63,32 +64,36 @@ export default {
   },
   data() {
     return {
-      title: "",
-      editor: new Editor({
-        extensions: [
-          new CodeBlock(),
-          new Heading({ levels: [1, 2, 3] }),
-          new Bold(),
-          new Code(),
-          new Blockquote()
-        ],
-        content: null,
-        onUpdate: ({ getJSON, getHTML }) => {
-          this.html = getHTML();
+      options: {
+        placeholder: {
+          text: "Type your story",
+          hideOnClick: true
+        },
+        toolbar: {
+          buttons: [
+            "bold",
+            "italic",
+            "quote",
+            {
+              name: "h2",
+              action: "append-h3",
+              aria: "header type 2",
+              tagNames: ["h3"],
+              contentDefault: "<b>H2</b>",
+              classList: ["custom-class-h2"]
+            }
+          ]
         }
-      }),
-      html: null,
-      json: null,
+      },
+      content: "",
+      title: "",
       isEdit: false,
       id: null,
       user: {
         first_name: "Packeer",
         last_name: "Mydeen"
       },
-      created_date: new Date(),
-      isShowToolTip: false,
-      tooltipPosition: {},
-      range: {}
+      created_date: new Date()
     };
   },
   mounted() {
@@ -97,18 +102,20 @@ export default {
       this.setInitialValues(this.$route.params.id);
     } else {
       this.setContent();
+      this.clearValues();
     }
   },
-  beforeDestroy() {
-    this.editor.destroy();
-  },
+
   methods: {
+    applyTextEdit(e) {
+      this.content = e.event.target.innerHTML;
+    },
     createPost() {
       let newObj = {
         user: this.user,
         created_date: this.created_date,
         title: this.title,
-        description: this.html,
+        description: this.content,
         id: this.id
       };
       this.$store.commit(!this.isEdit ? "createBlog" : "updateBlog", newObj);
@@ -121,11 +128,9 @@ export default {
       this.user = post.user;
       this.created_date = post.created_date;
       this.id = post.id;
-      this.html = post.description;
     },
     setContent(desc = null) {
-      this.editor.setContent(desc);
-      this.html = desc;
+      this.content = desc;
     },
     deletePost() {
       if (window.confirm("Are you sure want to delete?")) {
@@ -133,39 +138,9 @@ export default {
         this.$router.push("/");
       }
     },
-    replaceText(start, end, text) {
-      this.html =
-        this.html.substring(0, start + 3) +
-        `<code>${text}</code>` +
-        this.html.substring(end + 3);
-      this.setContent(this.html);
-    },
-    getOffset() {
-      let start = this.range.startOffset;
-      let end = this.range.endOffset;
-      this.replaceText(start, end, this.range.text);
-    },
-
-    highlight(e) {
-      let selection = window.getSelection();
-      if (selection) {
-        let text = selection.toString();
-        if (text.length > 0) {
-          this.isShowToolTip = true;
-        }
-        let range = selection.getRangeAt(0);
-        range = range.cloneRange();
-        this.range = range;
-        this.range["text"] = text;
-        let start = range.startOffset;
-        let end = range.endOffset;
-        const rangeBounds = range.getBoundingClientRect();
-        this.tooltipPosition = rangeBounds;
-        if (rangeBounds.width === 0) {
-          this.isShowToolTip = false;
-          this.range = {};
-        }
-      }
+    clearValues() {
+      this.title = "";
+      this.setContent();
     }
   }
 };

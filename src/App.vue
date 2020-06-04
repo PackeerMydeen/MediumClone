@@ -9,6 +9,7 @@
 
 <script>
 import Header from "./components/Header";
+
 export default {
   name: "app",
   components: {
@@ -29,10 +30,9 @@ body {
   margin: 0 auto;
   height: 100%;
 }
-.ProseMirror-focused {
+.medium-editor-element {
   outline: none;
 }
-code {
-  background: olivedrab;
-}
 </style>
+ 
+ 

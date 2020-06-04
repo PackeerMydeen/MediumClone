@@ -11,6 +11,9 @@
 import Button from "../Button";
 export default {
   name: "Header",
+  components: {
+    Button
+  },
   methods: {
     createPost() {
       this.$router.push("/upsert");
